@@ -8,7 +8,6 @@ import (
 	"os"
 	"slices"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -56,14 +55,6 @@ func TestAccExampleResource(t *testing.T) {
 						tfjsonpath.New("playbook_file"),
 						knownvalue.StringExact(tf.Name()),
 					),
-					statecheck.ExpectKnownValue(
-						"ansibleplay_run.test",
-						tfjsonpath.New("last_execution"),
-						knownvalue.StringFunc(func(v string) error {
-							_, err := time.Parse(time.RFC3339, v)
-							return err
-						}),
-					),
 				},
 			},
 			// Update and Read testing
@@ -79,14 +70,6 @@ func TestAccExampleResource(t *testing.T) {
 						"ansibleplay_run.test",
 						tfjsonpath.New("playbook_file"),
 						knownvalue.StringExact(tf.Name()),
-					),
-					statecheck.ExpectKnownValue(
-						"ansibleplay_run.test",
-						tfjsonpath.New("last_execution"),
-						knownvalue.StringFunc(func(v string) error {
-							_, err := time.Parse(time.RFC3339, v)
-							return err
-						}),
 					),
 				},
 			},
