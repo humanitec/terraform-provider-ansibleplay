@@ -25,3 +25,4 @@ provider "ansibleplay" {
 ### Optional
 
 - `ansible_playbook_binary` (String) The path to the Ansible playbook binary. This will be discovered automatically if not provided.
+- `verbosity` (Number) The verbosity level to use when running the playbook.
