@@ -56,6 +56,7 @@ func TestAccExampleResource(t *testing.T) {
 						knownvalue.StringExact(tf.Name()),
 					),
 				},
+				ExpectNonEmptyPlan: true,
 			},
 			// Update and Read testing
 			{
@@ -72,8 +73,8 @@ func TestAccExampleResource(t *testing.T) {
 						knownvalue.StringExact(tf.Name()),
 					),
 				},
+				ExpectNonEmptyPlan: true,
 			},
-			// Delete testing automatically occurs in TestCase
 		},
 	})
 }
