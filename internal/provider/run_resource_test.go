@@ -44,12 +44,12 @@ func TestAccExampleResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccExampleResourceConfig([]string{"127.0.0.1"}, tf.Name()),
+				Config: testAccExampleResourceConfig([]string{`127.0.0.1 {"ansible_connection":"local"}`}, tf.Name()),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"ansibleplay_run.test",
 						tfjsonpath.New("hosts"),
-						knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact("127.0.0.1")}),
+						knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(`127.0.0.1 {"ansible_connection":"local"}`)}),
 					),
 					statecheck.ExpectKnownValue(
 						"ansibleplay_run.test",
@@ -68,12 +68,12 @@ func TestAccExampleResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccExampleResourceConfig([]string{"127.0.0.1"}, tf.Name()),
+				Config: testAccExampleResourceConfig([]string{`127.0.0.1 {"ansible_connection":"local"}`}, tf.Name()),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"ansibleplay_run.test",
 						tfjsonpath.New("hosts"),
-						knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact("127.0.0.1")}),
+						knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(`127.0.0.1 {"ansible_connection":"local"}`)}),
 					),
 					statecheck.ExpectKnownValue(
 						"ansibleplay_run.test",
