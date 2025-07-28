@@ -1,6 +1,6 @@
 module github.com/humanitec/terraform-provider-ansibleplay
 
-go 1.23.7
+go 1.24
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.15.0
