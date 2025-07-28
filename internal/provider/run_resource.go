@@ -11,12 +11,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -35,9 +32,8 @@ type RunResource struct {
 }
 
 type RunResourceModel struct {
-	Hosts         types.List   `tfsdk:"hosts"`
-	PlaybookFile  types.String `tfsdk:"playbook_file"`
-	LastExecution types.String `tfsdk:"last_execution"`
+	Hosts        types.List   `tfsdk:"hosts"`
+	PlaybookFile types.String `tfsdk:"playbook_file"`
 }
 
 func (r *RunResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -51,19 +47,12 @@ func (r *RunResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 		Attributes: map[string]schema.Attribute{
 			"hosts": schema.ListAttribute{
 				ElementType:         types.StringType,
-				MarkdownDescription: "A list of hosts to run the playbook on.",
+				MarkdownDescription: "A list of hosts to run the playbook on. Each host (an ip or hostname) may be followed by a space and a JSON object of host attributes.",
 				Required:            true,
 			},
 			"playbook_file": schema.StringAttribute{
 				MarkdownDescription: "A path to the playbook file to run.",
 				Required:            true,
-			},
-			"last_execution": schema.StringAttribute{
-				MarkdownDescription: "The last time the playbook was run.",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 		},
 	}
@@ -81,7 +70,7 @@ func (r *RunResource) Configure(ctx context.Context, req resource.ConfigureReque
 	}
 }
 
-func (r *RunResource) execute(ctx context.Context, data RunResourceModel, checkOnly bool) error {
+func (r *RunResource) execute(ctx context.Context, data RunResourceModel) error {
 	hosts := make(map[string]interface{})
 	for _, value := range data.Hosts.Elements() {
 		hv, _ := value.(basetypes.StringValue)
@@ -115,9 +104,6 @@ func (r *RunResource) execute(ctx context.Context, data RunResourceModel, checkO
 	if v := r.providerModel.Verbosity.ValueInt32(); v > 0 {
 		args = append(args, "-"+strings.Repeat("v", int(v)))
 	}
-	if checkOnly {
-		args = append(args, "--check")
-	}
 	binary := r.providerModel.AnsiblePlaybookBinary.ValueString()
 	if binary == "" {
 		binary = "ansible-playbook"
@@ -143,40 +129,32 @@ func (r *RunResource) Create(ctx context.Context, req resource.CreateRequest, re
 	var data RunResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	if err := r.execute(ctx, data, false); err != nil {
+	if err := r.execute(ctx, data); err != nil {
 		resp.Diagnostics.AddError("Error", err.Error())
 	}
-	data.LastExecution = types.StringValue(time.Now().Format(time.RFC3339))
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *RunResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data RunResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if err := r.execute(ctx, data, false); err != nil {
-		resp.Diagnostics.AddError("Error", err.Error())
-	}
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.State.RemoveResource(ctx)
 }
 
 func (r *RunResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data RunResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	if err := r.execute(ctx, data, false); err != nil {
+	if err := r.execute(ctx, data); err != nil {
 		resp.Diagnostics.AddError("Error", err.Error())
 	}
-	data.LastExecution = types.StringValue(time.Now().Format(time.RFC3339))
 
 	if resp.Diagnostics.HasError() {
 		return
