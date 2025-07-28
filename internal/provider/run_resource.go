@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"gopkg.in/yaml.v3"
 )
@@ -74,20 +75,17 @@ func (r *RunResource) Configure(ctx context.Context, req resource.ConfigureReque
 	}
 	if m, ok := req.ProviderData.(AnsiblePlayProviderModel); !ok {
 		r.ansiblePlaybookBinary = m.AnsiblePlaybookBinary.ValueString()
-		if r.ansiblePlaybookBinary == "" {
-			r.ansiblePlaybookBinary = "ansible-playbook"
-		}
 	}
 }
 
 func (r *RunResource) execute(ctx context.Context, data RunResourceModel, checkOnly bool) error {
 	hosts := make(map[string]interface{})
 	for _, value := range data.Hosts.Elements() {
-		hostAndJsonAttr := strings.SplitN(value.String(), " ", 2)
+		hostAndJsonAttr := strings.SplitN(value.(basetypes.StringValue).ValueString(), " ", 2)
 		attr := map[string]interface{}{}
 		if len(hostAndJsonAttr) == 2 {
 			if err := json.Unmarshal([]byte(hostAndJsonAttr[1]), &attr); err != nil {
-				return fmt.Errorf("unable to parse host attributes for '%s': %w", hostAndJsonAttr[1], err)
+				return fmt.Errorf("unable to parse host attributes for '%s': %w", hostAndJsonAttr[0], err)
 			}
 		}
 		hosts[value.String()] = attr
@@ -104,7 +102,9 @@ func (r *RunResource) execute(ctx context.Context, data RunResourceModel, checkO
 	if checkOnly {
 		args = append(args, "--check")
 	}
-
+	if r.ansiblePlaybookBinary == "" {
+		r.ansiblePlaybookBinary = "ansible-playbook"
+	}
 	c := exec.CommandContext(ctx, r.ansiblePlaybookBinary, args...)
 	c.Stdin = bytes.NewReader(raw)
 	outBuffer := &bytes.Buffer{}

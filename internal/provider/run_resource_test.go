@@ -97,9 +97,6 @@ func TestAccExampleResource(t *testing.T) {
 
 func testAccExampleResourceConfig(hosts []string, playbook string) string {
 	f := hclwrite.NewEmptyFile()
-	p := f.Body().AppendNewBlock("provider", []string{"ansibleplay"})
-	p.Body().SetAttributeValue("ansible_playbook_binary", cty.StringVal("/Users/bmeier/lib/ansible/bin/ansible-playbook"))
-
 	b := f.Body().AppendNewBlock("resource", []string{"ansibleplay_run", "test"})
 	b.Body().SetAttributeValue("playbook_file", cty.StringVal(playbook))
 	b.Body().SetAttributeValue("hosts", cty.TupleVal(slices.Collect[cty.Value](func(yield func(value cty.Value) bool) {
