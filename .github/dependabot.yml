@@ -13,10 +13,6 @@ updates:
       "terraform-plugin":
         patterns:
           - "github.com/hashicorp/terraform-plugin-*"
-  - package-ecosystem: "gomod"
-    directory: "/tools"
-    schedule:
-      interval: "daily"
   - package-ecosystem: "github-actions"
     directory: "/"
     groups:
