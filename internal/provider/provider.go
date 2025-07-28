@@ -29,6 +29,7 @@ type AnsiblePlayProvider struct {
 // AnsiblePlayProviderModel describes the provider data model.
 type AnsiblePlayProviderModel struct {
 	AnsiblePlaybookBinary types.String `tfsdk:"ansible_playbook_binary"`
+	Verbosity             types.Int32  `tfsdk:"verbosity"`
 }
 
 func (p *AnsiblePlayProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -41,6 +42,10 @@ func (p *AnsiblePlayProvider) Schema(ctx context.Context, req provider.SchemaReq
 		Attributes: map[string]schema.Attribute{
 			"ansible_playbook_binary": schema.StringAttribute{
 				MarkdownDescription: "The path to the Ansible playbook binary. This will be discovered automatically if not provided.",
+				Optional:            true,
+			},
+			"verbosity": schema.Int32Attribute{
+				MarkdownDescription: "The verbosity level to use when running the playbook.",
 				Optional:            true,
 			},
 		},

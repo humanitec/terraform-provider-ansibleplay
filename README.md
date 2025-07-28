@@ -2,18 +2,21 @@
 
 **NB:** This requires that the `ansible-playbook` executable exists on the system! This usually requires that Python/Pip has been used to install and set this up already. At the time of writing there is no Golang-native solution that we can easily compile into this provider.
 
-This provider is not yet published, but when it is, it will be available as `ansibleplay`.
-
 ```
 terraform {
   required_providers {
     ansibleplay = {
       source  = "humanitec/ansibleplay"
-      version = "~> 0.0"
+      version = "~> 0.1"
     }
   }
 }
 ```
+
+Requirements:
+
+- `ansible-playbook` executable
+- Writable temporary directory for inventory files (currently Ansible doesn't support reading the inventory from a stdin source)
 
 ## Development
 
@@ -24,8 +27,6 @@ To compile the provider, run `go install`. This will build the provider and put 
 To generate or update documentation, run `make generate`. If you get a failure about "incompatible versions", use `GOOS=darwin GOARCH=amd64 go generate ./...` to set the platform specifically for example.
 
 In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
 
 ```shell
 make testacc

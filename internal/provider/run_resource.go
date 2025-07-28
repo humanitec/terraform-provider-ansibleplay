@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -30,7 +31,7 @@ func NewRunResource() resource.Resource {
 }
 
 type RunResource struct {
-	ansiblePlaybookBinary string
+	providerModel AnsiblePlayProviderModel
 }
 
 type RunResourceModel struct {
@@ -73,46 +74,61 @@ func (r *RunResource) Configure(ctx context.Context, req resource.ConfigureReque
 	if req.ProviderData == nil {
 		return
 	}
-	if m, ok := req.ProviderData.(AnsiblePlayProviderModel); !ok {
-		r.ansiblePlaybookBinary = m.AnsiblePlaybookBinary.ValueString()
+	var ok bool
+	if r.providerModel, ok = req.ProviderData.(AnsiblePlayProviderModel); !ok {
+		resp.Diagnostics.AddError("failed to convert provider data to AnsiblePlayProviderModel", "provider data is not AnsiblePlayProviderModel")
+		return
 	}
 }
 
 func (r *RunResource) execute(ctx context.Context, data RunResourceModel, checkOnly bool) error {
 	hosts := make(map[string]interface{})
 	for _, value := range data.Hosts.Elements() {
-		hostAndJsonAttr := strings.SplitN(value.(basetypes.StringValue).ValueString(), " ", 2)
+		hv, _ := value.(basetypes.StringValue)
+		hostAndJsonAttr := strings.SplitN(hv.ValueString(), " ", 2)
 		attr := map[string]interface{}{}
 		if len(hostAndJsonAttr) == 2 {
 			if err := json.Unmarshal([]byte(hostAndJsonAttr[1]), &attr); err != nil {
 				return fmt.Errorf("unable to parse host attributes for '%s': %w", hostAndJsonAttr[0], err)
 			}
 		}
-		hosts[value.String()] = attr
+		hosts[hostAndJsonAttr[0]] = attr
 	}
-	raw, _ := yaml.Marshal(map[string]interface{}{
+
+	tf, err := os.CreateTemp(os.TempDir(), "inventory-*.yml")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary inventory file: %w", err)
+	}
+	if err := yaml.NewEncoder(tf).Encode(map[string]interface{}{
 		"all": map[string]interface{}{
 			"hosts": hosts,
 		},
-	})
-	args := []string{
-		data.PlaybookFile.ValueString(), "-i", "/dev/stdin", "-vv",
+	}); err != nil {
+		return fmt.Errorf("failed to write temporary inventory file: %w", err)
 	}
-
+	if err := tf.Close(); err != nil {
+		return fmt.Errorf("failed to close temporary inventory file: %w", err)
+	}
+	args := []string{
+		data.PlaybookFile.ValueString(), "-i", tf.Name(),
+	}
+	if v := r.providerModel.Verbosity.ValueInt32(); v > 0 {
+		args = append(args, "-"+strings.Repeat("v", int(v)))
+	}
 	if checkOnly {
 		args = append(args, "--check")
 	}
-	if r.ansiblePlaybookBinary == "" {
-		r.ansiblePlaybookBinary = "ansible-playbook"
+	binary := r.providerModel.AnsiblePlaybookBinary.ValueString()
+	if binary == "" {
+		binary = "ansible-playbook"
 	}
-	c := exec.CommandContext(ctx, r.ansiblePlaybookBinary, args...)
-	c.Stdin = bytes.NewReader(raw)
+	c := exec.CommandContext(ctx, binary, args...)
 	outBuffer := &bytes.Buffer{}
 	errBuffer := &bytes.Buffer{}
 
 	c.Stdout = outBuffer
 	c.Stderr = errBuffer
-	err := c.Run()
+	err = c.Run()
 
 	tflog.Info(ctx, "ansible play output: "+outBuffer.String())
 
