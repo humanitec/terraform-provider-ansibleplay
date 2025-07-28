@@ -79,6 +79,9 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
+      - uses: alex-oleshkevich/setup-ansible@v1.0.1
+        with:
+          version: "8.7.0"
       - env:
           TF_ACC: "1"
         run: go test -v -cover ./internal/provider/
