@@ -15,8 +15,8 @@ terraform {
 provider "ansibleplay" {
 }
 
-resource "terraform_data" "playbook_hash" {
-  input = filesha256("./example.yml")
+resource "terraform_data" "always_rerun" {
+  triggers_replace = [timestamp()]
 }
 
 resource "ansibleplay_run" "example" {
@@ -27,7 +27,7 @@ resource "ansibleplay_run" "example" {
   }
   
   lifecycle {
-    replace_triggered_by = [terraform_data.playbook_hash]
+    replace_triggered_by = [terraform_data.always_rerun]
   }
 }
 ```
