@@ -147,6 +147,7 @@ func (r *RunResource) Create(ctx context.Context, req resource.CreateRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
