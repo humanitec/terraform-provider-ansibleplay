@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"strings"
@@ -33,6 +34,7 @@ type RunResource struct {
 }
 
 type RunResourceModel struct {
+	Id           types.Int64  `tfsdk:"id"`
 	Hosts        types.List   `tfsdk:"hosts"`
 	PlaybookFile types.String `tfsdk:"playbook_file"`
 	ExtraVars    types.String `tfsdk:"extra_vars_json"`
@@ -47,6 +49,10 @@ func (r *RunResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Run resource",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.Int64Attribute{
+				Description: "This is set to a random value at create time.",
+				Computed:    true,
+			},
 			"hosts": schema.ListAttribute{
 				ElementType:         types.StringType,
 				MarkdownDescription: "A list of hosts to run the playbook on. Each host (an ip or hostname) may be followed by a space and a JSON object of host attributes.",
@@ -139,15 +145,13 @@ func (r *RunResource) execute(ctx context.Context, data RunResourceModel) error 
 func (r *RunResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data RunResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if err := r.execute(ctx, data); err != nil {
 		resp.Diagnostics.AddError("Error", err.Error())
 	}
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
+	data.Id = types.Int64Value(int64(rand.Int()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -166,7 +170,7 @@ func (r *RunResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		}
 	}
 
-	resp.State.RemoveResource(ctx)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *RunResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
