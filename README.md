@@ -2,13 +2,24 @@
 
 **NB:** This requires that the `ansible-playbook` executable exists on the system! This usually requires that Python/Pip has been used to install and set this up already. At the time of writing there is no Golang-native solution that we can easily compile into this provider.
 
-```
+```hcl
 terraform {
   required_providers {
     ansibleplay = {
       source  = "humanitec/ansibleplay"
       version = "~> 0.1"
     }
+  }
+}
+
+provider "ansibleplay" {
+}
+
+resource "ansibleplay_run" "example" {
+  hosts = ["127.0.0.1"]
+  playbook_file = "./example.yml"
+  extra_vars_json = {
+    "app_name" = "primary"
   }
 }
 ```

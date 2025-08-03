@@ -5,6 +5,7 @@ package provider
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"slices"
 	"testing"
@@ -55,6 +56,11 @@ func TestAccExampleResource(t *testing.T) {
 						tfjsonpath.New("playbook_file"),
 						knownvalue.StringExact(tf.Name()),
 					),
+					statecheck.ExpectKnownValue(
+						"ansibleplay_run.test",
+						tfjsonpath.New("extra_vars_json"),
+						knownvalue.StringExact(`{"a":"b"}`),
+					),
 				},
 				ExpectNonEmptyPlan: true,
 			},
@@ -72,6 +78,11 @@ func TestAccExampleResource(t *testing.T) {
 						tfjsonpath.New("playbook_file"),
 						knownvalue.StringExact(tf.Name()),
 					),
+					statecheck.ExpectKnownValue(
+						"ansibleplay_run.test",
+						tfjsonpath.New("extra_vars_json"),
+						knownvalue.StringExact(`{"a":"b"}`),
+					),
 				},
 				ExpectNonEmptyPlan: true,
 			},
@@ -88,6 +99,8 @@ func testAccExampleResourceConfig(hosts []string, playbook string) string {
 			yield(cty.StringVal(h))
 		}
 	})))
+	raw, _ := json.Marshal(map[string]interface{}{"a": "b"})
+	b.Body().SetAttributeValue("extra_vars_json", cty.StringVal(string(raw)))
 	buf := new(bytes.Buffer)
 	_, _ = f.WriteTo(buf)
 	return buf.String()
