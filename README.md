@@ -15,11 +15,19 @@ terraform {
 provider "ansibleplay" {
 }
 
+resource "terraform_data" "playbook_hash" {
+  input = filesha256("./example.yml")
+}
+
 resource "ansibleplay_run" "example" {
   hosts = ["127.0.0.1"]
   playbook_file = "./example.yml"
   extra_vars_json = {
     "app_name" = "primary"
+  }
+  
+  lifecycle {
+    replace_triggered_by = [terraform_data.playbook_hash]
   }
 }
 ```

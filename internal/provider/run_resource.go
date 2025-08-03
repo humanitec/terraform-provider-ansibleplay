@@ -46,8 +46,13 @@ func (r *RunResource) Metadata(ctx context.Context, req resource.MetadataRequest
 
 func (r *RunResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Run resource",
+		MarkdownDescription: `The run resource allows you to run an ansible playbook. The run will attempt to execute the given
+playbook_file on the set of hosts with any extra_vars provided as json.
+
+Note, this resource will not automatically re-run if the playbook file has changed. And may not run if there have been
+no changes to the hosts or vars either. To ensure the run is always executed, use the ` + "`" + `lifecycle.replace_triggered_by` + "`" + `
+attribute to re-execute the run based on the hash of the playbook file or timestamp.
+`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Description: "This is set to a random value at create time.",
