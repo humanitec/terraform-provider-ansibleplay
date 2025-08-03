@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -34,6 +35,7 @@ type RunResource struct {
 type RunResourceModel struct {
 	Hosts        types.List   `tfsdk:"hosts"`
 	PlaybookFile types.String `tfsdk:"playbook_file"`
+	ExtraVars    types.String `tfsdk:"extra_vars_json"`
 }
 
 func (r *RunResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -53,6 +55,10 @@ func (r *RunResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 			"playbook_file": schema.StringAttribute{
 				MarkdownDescription: "A path to the playbook file to run.",
 				Required:            true,
+			},
+			"extra_vars_json": schema.StringAttribute{
+				MarkdownDescription: "A json-encoded map of extra variables to pass to the playbook.",
+				Optional:            true,
 			},
 		},
 	}
@@ -101,6 +107,11 @@ func (r *RunResource) execute(ctx context.Context, data RunResourceModel) error 
 	args := []string{
 		data.PlaybookFile.ValueString(), "-i", tf.Name(),
 	}
+
+	if !data.ExtraVars.IsNull() {
+		args = append(args, "--extra-vars", data.ExtraVars.ValueString())
+	}
+
 	if v := r.providerModel.Verbosity.ValueInt32(); v > 0 {
 		args = append(args, "-"+strings.Repeat("v", int(v)))
 	}
@@ -145,6 +156,15 @@ func (r *RunResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	if !data.ExtraVars.IsNull() && !data.ExtraVars.IsUnknown() {
+		var raw map[string]interface{}
+		if err := json.Unmarshal([]byte(data.ExtraVars.ValueString()), &raw); err != nil {
+			resp.Diagnostics.AddAttributeError(path.Root("extra_vars"), "extra_vars is not valid", "expected a valid json object")
+			return
+		}
+	}
+
 	resp.State.RemoveResource(ctx)
 }
 

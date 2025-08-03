@@ -19,3 +19,7 @@ Run resource
 
 - `hosts` (List of String) A list of hosts to run the playbook on. Each host (an ip or hostname) may be followed by a space and a JSON object of host attributes.
 - `playbook_file` (String) A path to the playbook file to run.
+
+### Optional
+
+- `extra_vars_json` (String) A json-encoded map of extra variables to pass to the playbook.
