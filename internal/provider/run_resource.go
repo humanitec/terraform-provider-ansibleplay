@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"strings"
@@ -33,6 +34,7 @@ type RunResource struct {
 }
 
 type RunResourceModel struct {
+	Id           types.Int64  `tfsdk:"id"`
 	Hosts        types.List   `tfsdk:"hosts"`
 	PlaybookFile types.String `tfsdk:"playbook_file"`
 	ExtraVars    types.String `tfsdk:"extra_vars_json"`
@@ -44,9 +46,18 @@ func (r *RunResource) Metadata(ctx context.Context, req resource.MetadataRequest
 
 func (r *RunResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Run resource",
+		MarkdownDescription: `The run resource allows you to run an ansible playbook. The run will attempt to execute the given
+playbook_file on the set of hosts with any extra_vars provided as json.
+
+Note, this resource will not automatically re-run if the playbook file has changed. And may not run if there have been
+no changes to the hosts or vars either. To ensure the run is always executed, use the ` + "`" + `lifecycle.replace_triggered_by` + "`" + `
+attribute to re-execute the run based on the hash of the playbook file or timestamp.
+`,
 		Attributes: map[string]schema.Attribute{
+			"id": schema.Int64Attribute{
+				Description: "This is set to a random value at create time.",
+				Computed:    true,
+			},
 			"hosts": schema.ListAttribute{
 				ElementType:         types.StringType,
 				MarkdownDescription: "A list of hosts to run the playbook on. Each host (an ip or hostname) may be followed by a space and a JSON object of host attributes.",
@@ -139,14 +150,13 @@ func (r *RunResource) execute(ctx context.Context, data RunResourceModel) error 
 func (r *RunResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data RunResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if err := r.execute(ctx, data); err != nil {
 		resp.Diagnostics.AddError("Error", err.Error())
 	}
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	data.Id = types.Int64Value(int64(rand.Int()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -165,7 +175,7 @@ func (r *RunResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		}
 	}
 
-	resp.State.RemoveResource(ctx)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *RunResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

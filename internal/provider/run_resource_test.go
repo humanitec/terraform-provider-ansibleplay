@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
@@ -62,29 +63,6 @@ func TestAccExampleResource(t *testing.T) {
 						knownvalue.StringExact(`{"a":"b"}`),
 					),
 				},
-				ExpectNonEmptyPlan: true,
-			},
-			// Update and Read testing
-			{
-				Config: testAccExampleResourceConfig([]string{`127.0.0.1 {"ansible_connection":"local"}`}, tf.Name()),
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"ansibleplay_run.test",
-						tfjsonpath.New("hosts"),
-						knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact(`127.0.0.1 {"ansible_connection":"local"}`)}),
-					),
-					statecheck.ExpectKnownValue(
-						"ansibleplay_run.test",
-						tfjsonpath.New("playbook_file"),
-						knownvalue.StringExact(tf.Name()),
-					),
-					statecheck.ExpectKnownValue(
-						"ansibleplay_run.test",
-						tfjsonpath.New("extra_vars_json"),
-						knownvalue.StringExact(`{"a":"b"}`),
-					),
-				},
-				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -92,6 +70,10 @@ func TestAccExampleResource(t *testing.T) {
 
 func testAccExampleResourceConfig(hosts []string, playbook string) string {
 	f := hclwrite.NewEmptyFile()
+
+	td := f.Body().AppendNewBlock("resource", []string{"terraform_data", "replacement"})
+	td.Body().SetAttributeRaw("input", hclwrite.TokensForFunctionCall("filesha256", hclwrite.TokensForValue(cty.StringVal(playbook))))
+
 	b := f.Body().AppendNewBlock("resource", []string{"ansibleplay_run", "test"})
 	b.Body().SetAttributeValue("playbook_file", cty.StringVal(playbook))
 	b.Body().SetAttributeValue("hosts", cty.TupleVal(slices.Collect[cty.Value](func(yield func(value cty.Value) bool) {
@@ -101,6 +83,10 @@ func testAccExampleResourceConfig(hosts []string, playbook string) string {
 	})))
 	raw, _ := json.Marshal(map[string]interface{}{"a": "b"})
 	b.Body().SetAttributeValue("extra_vars_json", cty.StringVal(string(raw)))
+	lff := b.Body().AppendNewBlock("lifecycle", nil)
+	lff.Body().SetAttributeRaw("replace_triggered_by", hclwrite.TokensForTuple([]hclwrite.Tokens{
+		hclwrite.TokensForTraversal([]hcl.Traverser{hcl.TraverseRoot{Name: "terraform_data"}, hcl.TraverseAttr{Name: "replacement"}}),
+	}))
 	buf := new(bytes.Buffer)
 	_, _ = f.WriteTo(buf)
 	return buf.String()

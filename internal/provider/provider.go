@@ -64,12 +64,13 @@ func (p *AnsiblePlayProvider) Configure(ctx context.Context, req provider.Config
 	if data.AnsiblePlaybookBinary.IsNull() {
 		_, err := exec.LookPath("ansible-playbook")
 		if err != nil {
-			resp.Diagnostics.AddError("ansible-playbook binary not found in PATH", err.Error())
+			resp.Diagnostics.AddWarning("ansible-playbook binary not found in PATH", err.Error())
+		}
+	} else if !data.AnsiblePlaybookBinary.IsUnknown() {
+		if _, err := os.Stat(data.AnsiblePlaybookBinary.ValueString()); err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("ansible-playbook binary '%s' could not be stat'd", data.AnsiblePlaybookBinary.ValueString()), err.Error())
 			return
 		}
-	} else if _, err := os.Stat(data.AnsiblePlaybookBinary.ValueString()); err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("ansible-playbook binary '%s' could not be stat'd", data.AnsiblePlaybookBinary.ValueString()), err.Error())
-		return
 	}
 
 	resp.DataSourceData = data

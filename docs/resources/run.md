@@ -3,12 +3,21 @@
 page_title: "ansibleplay_run Resource - ansibleplay"
 subcategory: ""
 description: |-
-  Run resource
+  The run resource allows you to run an ansible playbook. The run will attempt to execute the given
+  playbook_file on the set of hosts with any extra_vars provided as json.
+  Note, this resource will not automatically re-run if the playbook file has changed. And may not run if there have been
+  no changes to the hosts or vars either. To ensure the run is always executed, use the lifecycle.replace_triggered_by
+  attribute to re-execute the run based on the hash of the playbook file or timestamp.
 ---
 
 # ansibleplay_run (Resource)
 
-Run resource
+The run resource allows you to run an ansible playbook. The run will attempt to execute the given
+playbook_file on the set of hosts with any extra_vars provided as json.
+
+Note, this resource will not automatically re-run if the playbook file has changed. And may not run if there have been
+no changes to the hosts or vars either. To ensure the run is always executed, use the `lifecycle.replace_triggered_by`
+attribute to re-execute the run based on the hash of the playbook file or timestamp.
 
 
 
@@ -23,3 +32,7 @@ Run resource
 ### Optional
 
 - `extra_vars_json` (String) A json-encoded map of extra variables to pass to the playbook.
+
+### Read-Only
+
+- `id` (Number) This is set to a random value at create time.
