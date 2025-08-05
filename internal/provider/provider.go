@@ -68,8 +68,7 @@ func (p *AnsiblePlayProvider) Configure(ctx context.Context, req provider.Config
 		}
 	} else if !data.AnsiblePlaybookBinary.IsUnknown() {
 		if _, err := os.Stat(data.AnsiblePlaybookBinary.ValueString()); err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("ansible-playbook binary '%s' could not be stat'd", data.AnsiblePlaybookBinary.ValueString()), err.Error())
-			return
+			resp.Diagnostics.AddWarning(fmt.Sprintf("ansible-playbook binary '%s' not found", data.AnsiblePlaybookBinary.ValueString()), err.Error())
 		}
 	}
 
