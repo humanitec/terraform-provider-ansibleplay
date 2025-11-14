@@ -20,7 +20,7 @@ updates:
         patterns:
           - "*" # Group all GitHub Actions dependencies together
     schedule:
-      interval: "weekly"
+      interval: monthly
       day: "monday"
       time: "09:00"
       timezone: "Etc/UTC"
